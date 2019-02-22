@@ -1,28 +1,37 @@
 <template>
     <div class='container'>
-        <h1>{{data.name}}</h1>
-        <li v-for="(item, index) in repos" :key="item.name">
-            {{ index }} - {{ item.name }}
-        </li>
+        <VueMarkdown v-if="body" :source="body"/>
     </div>
 </template>
 
 <script>
+import VueMarkdown from 'vue-markdown'
+
 export default {
     name: 'Page', 
+    components: {
+        VueMarkdown
+    },
     props: {
         data: Object
     },
     data() {
-        return {
-            repos: [],
+        return{
+            readmeUrl: '',
+            body: '#### test '
         }
     },
     methods: {
-        fetchGhDetails() {
-            fetch(`https://api.github.com/${this.data.name}`)
-            .then(res => this.body = res.body)
-        }
+        fetchReadme(data) {
+            fetch(`https://api.github.com/repos/${data.name}/${data.repoName}/readme`)
+            .then(res => res.json())
+            .then(json => {
+                this.readmeUrl = json.download_url
+                fetch(this.readmeUrl)
+                .then(res => res.text())
+                .then(text => this.body = text)
+            })
+        },
     },
     watch: {
         data: {
@@ -30,9 +39,8 @@ export default {
             deep: true,
             handler: function(newVal) { // watch it
                 this.data = newVal
-                fetch(`https://api.github.com/users/${this.data.name}/repos`)
-                .then(res => res.json())
-                .then(json => this.repos = json)
+                if(this.data.repoName === undefined || this.data.repoName.length <= 0) {return}
+                this.fetchReadme(this.data)
             }
         }
     }
@@ -42,7 +50,10 @@ export default {
 <style scoped>
 .container {
     border: 1px solid black;
-    width: 80%;
-    height: 800px;
+    width: 75%;
+    height: 100%;
+    float: left;
+    text-align: left;
+    padding-left: 5px;
 }
 </style>
